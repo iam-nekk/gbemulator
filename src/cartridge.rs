@@ -1,10 +1,11 @@
 
 use core::str;
-use std::{fs::File, io::{Read, Seek}, os::unix::fs::FileExt, path::Path};
+use std::{fs::File, io::{Read, Seek}, path::Path};
 
 // Each ROM bank is always 16KB
-const ROM_BANK_SIZE: i32 = 16 * 1024;
+// const ROM_BANK_SIZE: i32 = 16 * 1024;
 
+#[allow(dead_code)]
 struct RomHeader {
     entry_point: u8,
     nintendo_logo: u8,
@@ -22,6 +23,7 @@ struct RomHeader {
     global_checksum: u16
 }
 
+#[allow(dead_code)]
 struct Cartridge {
     filename: String,
     rom_size: u32,
@@ -29,6 +31,7 @@ struct Cartridge {
     header: RomHeader
 }
 
+#[allow(dead_code)]
 static ROM_TYPES: &'static [&'static str] = &[
     "ROM ONLY",
     "MBC1",
@@ -67,6 +70,7 @@ static ROM_TYPES: &'static [&'static str] = &[
     "MBC7+SENSOR+RUMBLE+RAM+BATTERY"
 ];
 
+#[allow(non_snake_case)]
 fn LICENSE_CODE(code: u16) -> &'static str {
     match code {
         0x00 => "None",
@@ -126,7 +130,7 @@ fn LICENSE_CODE(code: u16) -> &'static str {
         0x92 => "Video system",
         0x93 => "Ocean/Acclaim",
         0x95 => "Varie",
-        0x96 => "Yonezawa/s’pal",
+        0x96 => "Yonezawa/spal",
         0x97 => "Kaneko",
         0x99 => "Pack in soft",
         0xA4 => "Konami (Yu-Gi-Oh!)",
@@ -135,7 +139,7 @@ fn LICENSE_CODE(code: u16) -> &'static str {
 }
 
 pub fn cartridge_load(rom_path: &Path) -> bool{
-    let mut rom_file = File::open(rom_path);
+    let rom_file = File::open(rom_path);
 
     let mut file_result = match rom_file{
         Ok(file_result) => file_result,
@@ -150,55 +154,44 @@ pub fn cartridge_load(rom_path: &Path) -> bool{
     let _ = file_result.rewind();
 
     println!("The file is {} bytes long", file_length);
-
-    let mut name_bytes: &mut [u8] = &mut [0,1];
-    let mut name = String::with_capacity(16);
+    // println!("Position is {:X}", file_result.stream_position().unwrap());
 
     let _ = file_result.seek(std::io::SeekFrom::Start(TITLE_OFFSET.try_into().unwrap()));
-    let mut buffer = [0; 16];
-    
-    let test = file_result.read(&mut buffer[..]);
-    println!("the bytes are {:?}", buffer);
-    println!("Title {}", str::from_utf8(&buffer).unwrap());
+    // println!("Position is {:X}", file_result.stream_position().unwrap());
+    let mut title_buffer = [0; 15];    
+    let _ = file_result.read(&mut title_buffer[..]);
+    println!(" - Title: {}", str::from_utf8(&title_buffer).unwrap());
+    // println!("Position is {:X}", file_result.stream_position().unwrap());
 
-    //let aux: &mut String = &mut String::from("");
-    // let mut aux: Vec<u8> = Vec::new();
-    //let test = file_result.read_to_string(aux); 
-    // let test = file_result.read_to_end(&mut aux);
+    let _ = file_result.seek(std::io::SeekFrom::Start(NEW_LICENSE_CODE_OFFSET.try_into().unwrap()));
+    // println!("Position is {:X}", file_result.stream_position().unwrap());
+    let mut license_code_buffer = [0; 2];    
+    let _ = file_result.read(&mut license_code_buffer[..]);
+    let license_code = str::from_utf8(&license_code_buffer).unwrap();
+    println!(" - License: {} {}", license_code, LICENSE_CODE(license_code.parse::<u16>().unwrap_or(0x00)));
+    // println!("Position is {:X}", file_result.stream_position().unwrap());
 
-    // println!("idk what im doing {:?}", aux);
 
-    // let mut name = String::with_capacity(16);
-
-    //     for i in 0..16 {
-    //         let c =
-    //             match self.rom[offsets::TITLE + i].to_ascii() {
-    //                 Ok(c) => c,
-    //                 _     => return None,
-    //             };
-
-    //         // If the name is shorter than 16bytes it's padded with 0s
-    //         if c.as_byte() == 0 {
-    //             break;
-    //         }
-
-    //         // Only uppercase ASCII is valid, but let's be a little
-    //         // more lenient
-    //         if !c.is_print() {
-    //             return None;
-    //         }
-
-    //         // Append new character
-    //         name.push(c.as_char());
-    //     }
 
     println!("ROM succesfully loaded!");
 
     return false;
 }
 
-    pub const TITLE_OFFSET:    usize = 0x134;
-    /// Cartridge type
-    pub const TYPE_OFFSET:     usize = 0x147;
-    pub const ROM_SIZE_OFFSET: usize = 0x148;
-    pub const RAM_SIZE_OFFSET: usize = 0x149;
+
+pub const TITLE_OFFSET: usize = 0x134;
+pub const NEW_LICENSE_CODE_OFFSET: usize = 0x144;
+// pub const ROM_SIZE_OFFSET: usize = 0x148;
+// pub const RAM_SIZE_OFFSET: usize = 0x149;
+
+
+
+
+#[allow(non_camel_case_types)]
+#[allow(dead_code)] // probably wont be used, cant seem to get it to work properly
+enum OFFSETS {
+    TITLE = 0x134,
+    NEW_LICENSE_CODE = 0x144,
+    ROM_SIZE = 0x148,
+    RAM_SIZE = 0x149
+}
