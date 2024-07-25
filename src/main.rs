@@ -31,6 +31,8 @@ fn main() {
 
     let rom_path = Path::new(&argv[1]);
 
+    cartridge::cartridge_load(rom_path);
+
     loop {
         if emulator.running == false {return};
 
